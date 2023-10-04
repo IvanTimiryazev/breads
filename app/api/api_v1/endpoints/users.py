@@ -8,13 +8,20 @@ from app.api.deps import get_db, get_current_user
 from app.schemas.users import UserCreate, UserUpdate, UserOut, UserOutWithFollowings
 from app.models.users import Users
 from app.crud.crud_user import user
+from app.elastic.elastic_service import get_es, ElasticSearchService
+from app.elastic.documents import UserDoc
 
 
 router = APIRouter()
 
 
 @router.post("/signup", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def create_user(*, db: Session = Depends(get_db), obj_in: UserCreate) -> Any:
+def create_user(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		obj_in: UserCreate,
+		es: Annotated[ElasticSearchService, Depends(get_es(UserDoc))]
+) -> Any:
 	user_db = db.query(Users).filter_by(email=obj_in.email).first()
 	if user_db:
 		raise HTTPException(
@@ -22,6 +29,7 @@ def create_user(*, db: Session = Depends(get_db), obj_in: UserCreate) -> Any:
 			detail="The user with this email already exists in the system"
 		)
 	user_db = user.create(db, obj_in=obj_in)
+	es.add_to_index(UserOut.from_orm(user_db))
 	return user_db
 
 
@@ -30,9 +38,11 @@ def update_user(
 		*,
 		db: Annotated[Session, Depends(get_db)],
 		user_in: UserUpdate,
-		current_user: Annotated[Users, Depends(get_current_user)]
+		current_user: Annotated[Users, Depends(get_current_user)],
+		es: Annotated[ElasticSearchService, Depends(get_es(UserDoc))]
 ) -> Any:
 	updated_user = user.update(db, db_obj=current_user, obj_in=user_in)
+	es.add_to_index(UserOut.from_orm(updated_user))
 	return updated_user
 
 
@@ -63,7 +73,7 @@ def follow(
 	if not follower:
 		raise HTTPException(
 			status_code=status.HTTP_400_BAD_REQUEST,
-			detail="he user with this id does not exists"
+			detail="The user with this id does not exists"
 		)
 	if follower == current_user:
 		raise HTTPException(
@@ -85,7 +95,7 @@ def unfollow(
 	if not follower:
 		raise HTTPException(
 			status_code=status.HTTP_400_BAD_REQUEST,
-			detail="he user with this id does not exists"
+			detail="The user with this id does not exists"
 		)
 	if follower == current_user:
 		raise HTTPException(

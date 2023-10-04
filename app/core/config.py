@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "CHEBUREKI.RU"
     SERVER_HOST: str = "0.0.0.0"
     SERVER_PORT: int = 8002
+    ELASTICSEARCH_URL: str
 
     class Config:
         env_file = f'{os.path.dirname(os.path.abspath(__file__))}/../../.env'
