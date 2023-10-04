@@ -1,5 +1,8 @@
-from sqlalchemy import Column, Table, Integer, String, ForeignKey, Date, Text
-from sqlalchemy.orm import relationship, backref
+from typing import Optional
+from datetime import date
+
+from sqlalchemy import Column, Table, Integer, String, ForeignKey, Text
+from sqlalchemy.orm import relationship, backref, mapped_column, Mapped
 
 from app.db.base_class import Base
 
@@ -13,13 +16,15 @@ following = Table(
 
 class Users(Base):
 	__tablename__ = 'users'
-	id = Column(Integer, primary_key=True)
-	email = Column(String(100), unique=True, nullable=False, index=True)
-	name = Column(String(50), nullable=True)
-	surname = Column(String(80), nullable=True)
-	birth_date = Column(Date)
-	about_me = Column(Text)
-	hashed_password = Column(String(200))
+
+	id: Mapped[int] = mapped_column(primary_key=True)
+	email: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+	name: Mapped[Optional[str]] = mapped_column(String(50))
+	surname: Mapped[Optional[str]] = mapped_column(String(80))
+	birth_date: Mapped[Optional[date]]
+	about_me: Mapped[Optional[str]] = mapped_column(Text)
+	hashed_password: Mapped[Optional[str]] = mapped_column(String(200))
+
 	followers = relationship(
 		'Users', secondary=following,
 		primaryjoin=id == following.c.follower_id,
@@ -30,5 +35,3 @@ class Users(Base):
 
 	def __repr__(self):
 		return f"User_id={self.id} - {self.email}"
-
-
