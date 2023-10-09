@@ -1,10 +1,11 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import date
 
 from sqlalchemy import Column, Table, Integer, String, ForeignKey, Text
 from sqlalchemy.orm import relationship, backref, mapped_column, Mapped
 
 from app.db.base_class import Base
+from app.models.image import Image
 
 
 following = Table(
@@ -32,6 +33,7 @@ class Users(Base):
 		backref=backref('followed', lazy='dynamic'),
 		lazy='dynamic'
 	)
+	images: Mapped[List["Image"]] = relationship(cascade="all, delete-orphan")
 
 	def __repr__(self):
 		return f"User_id={self.id} - {self.email}"

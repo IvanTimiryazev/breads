@@ -1,15 +1,19 @@
 from typing import Any, Annotated
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
 from app.schemas.users import UserCreate, UserUpdate, UserOut, UserOutWithFollowings
+from app.schemas.image import ImageOut
 from app.models.users import Users
+from app.models.image import Image
 from app.crud.crud_user import user
 from app.elastic.elastic_service import get_es, ElasticSearchService
 from app.elastic.documents import UserDoc
+from app.utils.image_processing import image_processing
 
 
 router = APIRouter()
@@ -148,4 +152,16 @@ def get_followed(
 	return user_db
 
 
+@router.post("/uploadfile/", response_model=ImageOut, status_code=status.HTTP_201_CREATED)
+def upload_image(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		current_user: Annotated[Users, Depends(get_current_user)],
+		file: Annotated[UploadFile, File(...)]
+) -> Any:
+	name = image_processing(file)
+	image = Image(name=name, upload_time=datetime.utcnow(), user_id=current_user.id)
+	db.add(image)
+	db.commit()
+	return image
 
