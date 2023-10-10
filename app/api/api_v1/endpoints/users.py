@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
 from app.schemas.users import UserCreate, UserUpdate, UserOut, UserOutWithFollowings
-from app.schemas.image import ImageOut
+from app.schemas import image
 from app.models.users import Users
 from app.models.image import Image
 from app.crud.crud_user import user
@@ -152,7 +152,7 @@ def get_followed(
 	return user_db
 
 
-@router.post("/uploadfile/", response_model=ImageOut, status_code=status.HTTP_201_CREATED)
+@router.post("/uploadfile/", response_model=image.ImageOut, status_code=status.HTTP_201_CREATED)
 def upload_image(
 		*,
 		db: Annotated[Session, Depends(get_db)],
@@ -160,8 +160,10 @@ def upload_image(
 		file: Annotated[UploadFile, File(...)]
 ) -> Any:
 	name = image_processing(file)
-	image = Image(name=name, upload_time=datetime.utcnow(), user_id=current_user.id)
-	db.add(image)
+	image_obj = image.Image(name=name, upload_time=datetime.utcnow(), user_id=current_user.id)
+	db_image = Image(**image_obj.dict())
+	db.add(db_image)
 	db.commit()
-	return image
+	return db_image
+
 
