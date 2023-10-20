@@ -1,6 +1,7 @@
-from typing import Any, Dict, Tuple, List, Optional
+from typing import Any, Dict
 
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.crud.base import CRUDBase
 from app.models.users import Users
@@ -12,11 +13,12 @@ from app.core.security import get_password_hash, verify_password
 class CRUDUser(CRUDBase[Users, UserCreate, UserUpdate]):
 	def get_by_email(self, db: Session, *, email: str) -> Users:
 		"""Возвращаем объекта класса Users из бд по имэйлу"""
-		return db.query(self.model).filter_by(email=email).first()
+		stmt = select(self.model).filter_by(email=email)
+		return db.execute(stmt).scalar_one_or_none()
 
 	def create(self, db: Session, *, obj_in: UserCreate) -> Users:
 		"""Создание нового пользователя в бд"""
-		obj_in_data = obj_in.dict()
+		obj_in_data = obj_in.model_dump()
 		obj_in_data.pop('password')
 		db_obj = self.model(**obj_in_data)
 		setattr(db_obj, 'hashed_password', get_password_hash(obj_in.password))
@@ -35,7 +37,7 @@ class CRUDUser(CRUDBase[Users, UserCreate, UserUpdate]):
 		if isinstance(obj_in, dict):
 			update_data = obj_in
 		else:
-			update_data = obj_in.dict(exclude_unset=True)
+			update_data = obj_in.model_dump(exclude_unset=True)
 		if 'password' in update_data:
 			hashed_password = get_password_hash(update_data['password'])
 			del update_data['password']
@@ -52,33 +54,33 @@ class CRUDUser(CRUDBase[Users, UserCreate, UserUpdate]):
 		return auth_user
 
 	@staticmethod
-	def is_following(*, user_db: Users, follower: Users) -> bool:
+	def is_following(*, user_db: Users, user_to_follow: Users) -> bool:
 		"""Здесь получаем список подписок user_db - (select * from following where followed_id = user_db)
 		вернет все значения из follower_id которые подходят по условию. Далее проверяю если в колонке
-		follower_id есть значение которое равно follower.id, то счетчик count будет больше 0 и вернет True"""
-		return user_db.followed.filter(following.c.follower_id == follower.id).count() > 0
+		follower_id есть значение которое равно user_to_follow.id, то счетчик count будет больше 0 и вернет True"""
+		return user_db.followed.filter(following.c.follower_id == user_to_follow.id).count() > 0
 
 	@classmethod
-	def follow(cls, db: Session, *, user_db: Users, follower: Users) -> Users | None:
-		"""user_db подписывается на follower. Точнее user_db.followed вернет список из пользователей,
+	def follow(cls, db: Session, *, user_db: Users, user_to_follow: Users) -> Users | None:
+		"""user_db подписывается на user_to_follow. Точнее user_db.followed вернет список из пользователей,
 		на которых подписан user_db (select * from following where followed_id = user_db) вернет все значения
-		из follower_id которые подходят по условию. Команда user_db.followed.append(follower) добавит
+		из follower_id которые подходят по условию. Команда user_db.followed.append(user_to_follow) добавит
 		пользователя follower в этот список"""
-		if not cls.is_following(user_db=user_db, follower=follower):
-			user_db.followed.append(follower)
+		if not cls.is_following(user_db=user_db, user_to_follow=user_to_follow):
+			user_db.followed.append(user_to_follow)
 			db.commit()
 			return user_db
 		else:
 			return user_db
 
 	@classmethod
-	def unfollow(cls, db: Session, *, user_db: Users, follower: Users) -> Users | None:
-		"""user_db отписывается от follower. user_db.followed вернет список из пользователей,
+	def unfollow(cls, db: Session, *, user_db: Users, user_to_follow: Users) -> Users | None:
+		"""user_db отписывается от user_to_follow. user_db.followed вернет список из пользователей,
 		на которых подписан user_db (select * from following where followed_id = user_db) вернет все значения
-		из follower_id которые подходят по условию. Команда user_db.followed.remove(follower) удалит
+		из follower_id которые подходят по условию. Команда user_db.followed.remove(user_to_follow) удалит
 		follower из этого списка."""
-		if cls.is_following(user_db=user_db, follower=follower):
-			user_db.followed.remove(follower)
+		if cls.is_following(user_db=user_db, user_to_follow=user_to_follow):
+			user_db.followed.remove(user_to_follow)
 			db.commit()
 			return user_db
 		else:

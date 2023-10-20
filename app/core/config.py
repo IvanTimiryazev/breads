@@ -1,8 +1,15 @@
-from pydantic import EmailStr, BaseSettings
+from pydantic import EmailStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=f'{os.path.dirname(os.path.abspath(__file__))}/../../.env',
+        env_file_encoding='utf-8',
+        extra='ignore'
+    )
+
     API_V1_STR: str = "/api/v1"
     SQLALCHEMY_DATABASE_URI: str
     SQLALCHEMY_DATABASE_URI_TEST: str
@@ -25,10 +32,5 @@ class Settings(BaseSettings):
     ELASTICSEARCH_URL: str
     STATIC_DIR: str
 
-    class Config:
-        env_file = f'{os.path.dirname(os.path.abspath(__file__))}/../../.env'
 
-
-settings = Settings(
-    _env_file_encoding='utf-8'
-)
+settings = Settings()

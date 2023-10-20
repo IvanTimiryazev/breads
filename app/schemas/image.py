@@ -1,20 +1,29 @@
 from typing import Sequence
-from pydantic import BaseModel
 from datetime import datetime
+from pathlib import Path
+from pydantic import BaseModel, ConfigDict
 
 
-class Image(BaseModel):
+class ImageDB(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
 	name: str
 	upload_time: datetime
 	user_id: int
-
-	class Config:
-		orm_mode = True
+	post_id: int | None = None
 
 
-class ImageOut(Image):
+class ImageDBOut(ImageDB):
 	id: int
 
 
-class Images(BaseModel):
-	images: Sequence[ImageOut] | None
+class ImagesDBOut(BaseModel):
+	images: Sequence[ImageDBOut]
+
+
+class ImageOut(BaseModel):
+	filepath: Path
+
+
+class ImagesOut(BaseModel):
+	images: Sequence[ImageOut]

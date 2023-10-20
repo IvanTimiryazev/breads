@@ -8,7 +8,7 @@ from app.core.config import settings
 
 def image_processing(image: UploadFile) -> str:
 	filepath = Path(settings.STATIC_DIR)/"images"
-	extension = image.filename.split(".")[-1]
+	extension = image.filename.split(".")[-1].lower()
 	if extension not in ('jpg', 'jpeg', 'png'):
 		raise HTTPException(
 			status_code=400,

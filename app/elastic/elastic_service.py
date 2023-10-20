@@ -1,5 +1,6 @@
 import logging
 from typing import Any, Type
+from pydantic import BaseModel
 
 import elastic_transport
 
@@ -30,12 +31,12 @@ class ElasticSearchService:
 		self.doc = document
 		self._search = Search(index=self.doc.Index.name)
 
-	def add_to_index(self, obj: Any) -> None:
+	def add_to_index(self, obj: dict | BaseModel) -> None:
 		logger.info("Saving user into Elastic...")
 		if isinstance(obj, dict):
 			obj_data = obj
 		else:
-			obj_data = obj.dict(exclude_unset=True)
+			obj_data = obj.model_dump(exclude_unset=True)
 		index: UserDoc = self.doc(meta={"id": obj_data["id"]})
 		for field in obj_data:
 			setattr(index, field, obj_data[field])

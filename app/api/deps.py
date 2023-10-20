@@ -36,7 +36,7 @@ def get_current_user(
 		token_data = TokenData(id=user_id)
 	except JWTError:
 		raise credentials_exception
-	current_user = user.get(db, id=token_data.id)
+	current_user = user.get(db, id_=token_data.id)
 	if not current_user:
 		raise credentials_exception
 	return current_user
