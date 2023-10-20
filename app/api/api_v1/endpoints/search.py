@@ -21,5 +21,6 @@ def search(
 		es: Annotated[ElasticSearchService, Depends(get_es(UserDoc))]
 ) -> Any:
 	res = es.retrieve(text)
+	print(res.hits)
 	return res.hits
 

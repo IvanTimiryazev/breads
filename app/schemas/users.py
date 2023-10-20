@@ -1,15 +1,15 @@
-from typing import Sequence, List, Optional, Dict
+from typing import List, Sequence
 from datetime import date
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 
 class UserBase(BaseModel):
-	email: Optional[EmailStr] = None
-	name: Optional[str] = None
-	surname: Optional[str] = None
-	birth_date: Optional[date] = None
-	about_me: Optional[str] = None
+	email: EmailStr | None = None
+	name: str | None = None
+	surname: str | None = None
+	birth_date: date | None = None
+	about_me: str | None = None
 
 
 class UserCreate(BaseModel):
@@ -18,14 +18,13 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(UserBase):
-	password: Optional[str]
+	password: str | None = None
 
 
 class UserInDBBase(UserBase):
-	id: Optional[int] = None
+	model_config = ConfigDict(from_attributes=True)
 
-	class Config:
-		orm_mode = True
+	id: int | None = None
 
 
 class UserOut(UserInDBBase):
@@ -36,6 +35,9 @@ class UserInDB(UserInDBBase):
 	hashed_password: str
 
 
-class UserOutWithFollowings(UserOut):
-	followers: Sequence[UserOut] | None = None
-	followed: Sequence[UserOut] | None = None
+class UserOutWithFollowers(UserOut):
+	followers: List[UserOut] | None = None
+
+
+class UserOutWithFollowed(UserOut):
+	followed: List[UserOut] | None = None
