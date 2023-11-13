@@ -5,17 +5,19 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.api.deps import get_db, get_current_user
 from app.schemas.users import UserCreate, UserUpdate, UserOut, UserOutWithFollowers, UserOutWithFollowed
 from app.schemas import image
 from app.schemas.exceptions import ErrorResponse
+from app.schemas.responses import SuccessResponse
 from app.models.users import Users
 from app.models.image import Image
 from app.crud.crud_user import user
 from app.elastic.elastic_service import get_es, ElasticSearchService
 from app.elastic.documents import UserDoc
-from app.utils.image_processing import image_processing
+from app.utils.image_processing import image_processing, image_delete, image_exist_check
 from app.core.config import settings
 
 
@@ -196,14 +198,27 @@ def upload_images(
 	return {"images": images_out}
 
 
-@router.get("/image/{filename}", status_code=status.HTTP_200_OK)
+@router.get("/image/{filename}", response_model=image.ImageOut, status_code=status.HTTP_200_OK)
 def get_image(
 		*,
+		db: Annotated[Session, Depends(get_db)],
 		current_user: Annotated[Users, Depends(get_current_user)],
 		filename: str
-) -> FileResponse:
-	filepath = Path(settings.STATIC_DIR) / "images"
-	return FileResponse(filepath/filename)
+) -> Any:
+	filepath = image_exist_check(filename)
+	db_image = db.execute(select(Image).filter_by(name=filename)).scalar_one_or_none()
+	if not db_image:
+		error_response = ErrorResponse(
+			loc="filename",
+			msg="The image with this id does not exists",
+			type="value_error"
+		)
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=[error_response.model_dump()]
+		)
+	url = f"{settings.SERVER_HOST}:{settings.SERVER_PORT}/static/images/{filename}"
+	return {"filepath": url, "name": db_image.name}
 
 
 @router.get("/images", response_model=image.ImagesOut, status_code=status.HTTP_200_OK)
@@ -211,9 +226,33 @@ def get_images(
 		*,
 		current_user: Annotated[Users, Depends(get_current_user)]
 ) -> Any:
-	filepath = Path(settings.STATIC_DIR) / "images"
-	images_out = [image.ImageOut(filepath=filepath/i.name) for i in current_user.images.all()]
+	_url = Path(f"{settings.SERVER_HOST}:{settings.SERVER_PORT}/static/images")
+	images_out = [image.ImageOut(filepath=_url/i.name, name=i.name) for i in current_user.images.all()]
 	return {"images": images_out}
+
+
+@router.delete("/image/{filename}", response_model=SuccessResponse, status_code=status.HTTP_200_OK)
+def delete_image(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		current_user: Annotated[Users, Depends(get_current_user)],
+		filename: str
+) -> Any:
+	image_delete(filename)
+	db_image = db.execute(select(Image).filter_by(name=filename)).scalar_one_or_none()
+	current_user.images.remove(db_image)
+	db.commit()
+	return {"success": "Image has been deleted."}
+
+
+@router.get("/image-download/{filename}", status_code=status.HTTP_200_OK)
+def download_image(
+		*,
+		current_user: Annotated[Users, Depends(get_current_user)],
+		filename: str
+) -> FileResponse:
+	filepath = image_exist_check(filename)
+	return FileResponse(filepath)
 
 
 @router.get("/{user_id}", response_model=UserOut, status_code=status.HTTP_200_OK)
@@ -235,3 +274,5 @@ def get_user_by_id(
 			detail=[error_response.model_dump()]
 		)
 	return user_db
+
+
