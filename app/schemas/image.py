@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import List
 from datetime import datetime
 from pathlib import Path
 from pydantic import BaseModel, ConfigDict
@@ -18,12 +18,13 @@ class ImageDBOut(ImageDB):
 
 
 class ImagesDBOut(BaseModel):
-	images: Sequence[ImageDBOut]
+	images: List[ImageDBOut]
 
 
 class ImageOut(BaseModel):
 	filepath: Path
+	name: str
 
 
 class ImagesOut(BaseModel):
-	images: Sequence[ImageOut]
+	images: List[ImageOut]
