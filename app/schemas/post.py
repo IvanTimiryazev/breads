@@ -41,8 +41,16 @@ class PostDBCreate(BaseModel):
 
 	content: str | None = None
 	created_at: datetime | None = None
+	updated_at: datetime | None = None
 	user_id: int
 	original_post_id: int | None = None
+
+
+class PostDBUpdate(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
+	content: str | None = None
+	updated_at: datetime
 
 
 class PostDBOut(PostDBCreate):
@@ -50,3 +58,7 @@ class PostDBOut(PostDBCreate):
 	author: UserOut | None = None
 	original_post: Optional["PostDBOut"] = None
 	images: List[ImageDBOut] | None = None
+
+
+class PostsDBOut(BaseModel):
+	posts: List[PostDBOut]
