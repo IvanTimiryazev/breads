@@ -17,6 +17,7 @@ class Post(Base):
 	id: Mapped[int] = mapped_column(primary_key=True)
 	content: Mapped[str | None] = mapped_column(Text)
 	created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+	updated_at: Mapped[datetime | None]
 	user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
 	original_post_id: Mapped[int | None] = mapped_column(ForeignKey("post.id"))
 	author: Mapped["Users"] = relationship(back_populates="posts")
