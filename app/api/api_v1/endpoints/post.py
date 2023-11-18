@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Annotated, Any, List
 
-from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, status, UploadFile, File
+
+from fastapi_pagination import Page, Params, paginate
 
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -15,6 +17,7 @@ from app.models.image import Image
 from app.models.post import Post
 from app.utils.image_processing import image_processing, image_delete
 from app.crud.crud_post import post
+from app.crud.crud_user import user
 
 router = APIRouter()
 
@@ -102,6 +105,19 @@ def get_posts(
 		current_user: Annotated[Users, Depends(get_current_user)]
 ) -> Any:
 	return {"posts": [p for p in current_user.posts.all()]}
+
+
+@router.get("/get-posts/{user_id}", response_model=Page[PostDBOut], status_code=status.HTTP_200_OK)
+def get_user_posts(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		user_id: int,
+		params: Annotated[Params, Depends()]
+) -> Any:
+	db_user = user.get(db, id_=user_id)
+	db_posts = post.get_page(db, page=params.page, limit=params.size, id_=user_id)
+	total_posts = post.count_posts(db, user_id)
+	return paginate(db_posts, params)
 
 
 @router.get("/{post_id}", response_model=PostDBOut, status_code=status.HTTP_200_OK)

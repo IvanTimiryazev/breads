@@ -3,14 +3,31 @@ from typing import Any, Dict
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
+from fastapi import HTTPException, status
+
 from app.crud.base import CRUDBase
 from app.models.users import Users
 from app.models.users import following
 from app.schemas.users import UserCreate, UserUpdate
+from app.schemas.exceptions import ErrorResponse
 from app.core.security import get_password_hash, verify_password
 
 
 class CRUDUser(CRUDBase[Users, UserCreate, UserUpdate]):
+	def get(self, db: Session, *, id_: Any) -> Users | None:
+		db_user = db.get(self.model, id_)
+		if not db_user:
+			error_response = ErrorResponse(
+				loc="user_id",
+				msg="The user with this id does not exists",
+				type="value_error"
+			)
+			raise HTTPException(
+				status_code=status.HTTP_400_BAD_REQUEST,
+				detail=[error_response.model_dump()]
+			)
+		return db_user
+
 	def get_by_email(self, db: Session, *, email: str) -> Users:
 		"""Возвращаем объекта класса Users из бд по имэйлу"""
 		stmt = select(self.model).filter_by(email=email)

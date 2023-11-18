@@ -68,16 +68,6 @@ def follow(
 		current_user: Annotated[Users, Depends(get_current_user)]
 ) -> Any:
 	user_to_follow = user.get(db, id_=user_id)
-	if not user_to_follow:
-		error_response = ErrorResponse(
-			loc="user_id",
-			msg="The user with this id does not exists",
-			type="value_error"
-		)
-		raise HTTPException(
-			status_code=status.HTTP_400_BAD_REQUEST,
-			detail=[error_response.model_dump()]
-		)
 	if user_to_follow == current_user:
 		error_response = ErrorResponse(
 			loc="user_id",
@@ -100,16 +90,6 @@ def unfollow(
 		current_user: Annotated[Users, Depends(get_current_user)]
 ) -> Any:
 	user_to_follow = user.get(db, id_=user_id)
-	if not user_to_follow:
-		error_response = ErrorResponse(
-			loc="user_id",
-			msg="The user with this id does not exists",
-			type="value_error"
-		)
-		raise HTTPException(
-			status_code=status.HTTP_400_BAD_REQUEST,
-			detail=[error_response.model_dump()]
-		)
 	if user_to_follow == current_user:
 		error_response = ErrorResponse(
 			loc="user_id",
@@ -131,18 +111,7 @@ def get_followers(
 		db: Annotated[Session, Depends(get_db)],
 		current_user: Annotated[Users, Depends(get_current_user)]
 ) -> Any:
-	user_db = user.get(db, id_=user_id)
-	if not user_db:
-		error_response = ErrorResponse(
-			loc="user_id",
-			msg="The user with this id does not exists",
-			type="value_error"
-		)
-		raise HTTPException(
-			status_code=status.HTTP_400_BAD_REQUEST,
-			detail=[error_response.model_dump()]
-		)
-	return user_db
+	return user.get(db, id_=user_id)
 
 
 @router.get("/get-followed/{user_id}", response_model=UserOutWithFollowed, status_code=status.HTTP_200_OK)
@@ -152,18 +121,7 @@ def get_followed(
 		db: Annotated[Session, Depends(get_db)],
 		current_user: Annotated[Users, Depends(get_current_user)]
 ) -> Any:
-	user_db = user.get(db, id_=user_id)
-	if not user_db:
-		error_response = ErrorResponse(
-			loc="user_id",
-			msg="The user with this id does not exists",
-			type="value_error"
-		)
-		raise HTTPException(
-			status_code=status.HTTP_400_BAD_REQUEST,
-			detail=[error_response.model_dump()]
-		)
-	return user_db
+	return user.get(db, id_=user_id)
 
 
 @router.post("/uploadfile/", response_model=image.ImageDBOut, status_code=status.HTTP_201_CREATED)
@@ -263,16 +221,6 @@ def get_user_by_id(
 		current_user: Annotated[Users, Depends(get_current_user)]
 ) -> Any:
 	user_db = user.get(db, id_=user_id)
-	if not user_db:
-		error_response = ErrorResponse(
-			loc="user_id",
-			msg="The user with this id does not exists",
-			type="value_error"
-		)
-		raise HTTPException(
-			status_code=status.HTTP_400_BAD_REQUEST,
-			detail=[error_response.model_dump()]
-		)
 	return user_db
 
 
