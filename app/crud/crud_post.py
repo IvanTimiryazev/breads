@@ -1,6 +1,7 @@
-from typing import Any
+from typing import Any, List
 
 from sqlalchemy.orm import Session
+from sqlalchemy import select, func
 
 from fastapi import HTTPException, status
 
@@ -25,6 +26,16 @@ class CRUDPost(CRUDBase[Post, PostDBCreate, PostUpdate]):
 				detail=[error_response.model_dump()]
 			)
 		return db_post
+
+	def get_page(self, db: Session, *, page: int, limit: int, id_: int) -> List[Post]:
+		"""Функция возвращает посты пользователя, разбитые на страницы"""
+		stmt = select(self.model).where(self.model.user_id == id_).offset((page - 1) * limit).limit(limit)
+		return db.execute(stmt).scalars().all()
+
+	def count_posts(self, db: Session, id_: int) -> int:
+		"""Функция считает общее количество постов пользователя"""
+		stmt = select(func.count("*")).select_from(self.model).where(self.model.user_id == id_)
+		return db.execute(stmt).scalar_one()
 
 
 post = CRUDPost(Post)
