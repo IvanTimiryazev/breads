@@ -15,6 +15,8 @@ from app.core.security import get_password_hash, verify_password
 
 class CRUDUser(CRUDBase[Users, UserCreate, UserUpdate]):
 	def get(self, db: Session, *, id_: Any) -> Users | None:
+		"""Возвращает юзера по его ID. После выполняет проверку, существует ли такой юзер.
+		Если db_user is None, то будет исключение."""
 		db_user = db.get(self.model, id_)
 		if not db_user:
 			error_response = ErrorResponse(

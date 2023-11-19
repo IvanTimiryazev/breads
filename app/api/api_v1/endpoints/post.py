@@ -1,21 +1,23 @@
 from datetime import datetime
 from typing import Annotated, Any, List
 
-from fastapi import APIRouter, Depends, status, UploadFile, File
-
-from fastapi_pagination import Page, Params, paginate
+from fastapi import APIRouter, Depends, status, UploadFile, File, Path, Query
 
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
+from fastapi_pagination import Page
+
 from app.schemas.post import PostCreate, PostUpdate, PostDBOut, PostDBCreate, PostDBUpdate, PostsDBOut
 from app.schemas.image import ImageDB
 from app.schemas.responses import SuccessResponse
+from app.schemas.page import Page
 from app.api.deps import get_db, get_current_user
 from app.models.users import Users
 from app.models.image import Image
 from app.models.post import Post
 from app.utils.image_processing import image_processing, image_delete
+from app.utils.page import page_dict
 from app.crud.crud_post import post
 from app.crud.crud_user import user
 
@@ -111,13 +113,28 @@ def get_posts(
 def get_user_posts(
 		*,
 		db: Annotated[Session, Depends(get_db)],
-		user_id: int,
-		params: Annotated[Params, Depends()]
+		current_user: Annotated[Users, Depends(get_current_user)],
+		user_id: int = Path(description='user id'),
+		page: int = Query(1, ge=1, description="Page number"),
+		size: int = Query(10, ge=1, le=100, description="Page size")
 ) -> Any:
 	db_user = user.get(db, id_=user_id)
-	db_posts = post.get_page(db, page=params.page, limit=params.size, id_=user_id)
+	db_posts = post.get_page(db, page=page, limit=size, id_=user_id)
 	total_posts = post.count_posts(db, user_id)
-	return paginate(db_posts, params)
+	return Page(items=db_posts, **page_dict(page=page, size=size, total_posts=total_posts))
+
+
+@router.get("/get-posts", response_model=Page[PostDBOut], status_code=status.HTTP_200_OK)
+def get_feeds(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		current_user: Annotated[Users, Depends(get_current_user)],
+		page: int = Query(1, ge=1, description="Page number"),
+		size: int = Query(10, ge=1, le=100, description="Page size")
+) -> Any:
+	db_posts = post.get_all_feed(db, page=page, limit=size, id_=current_user.id)
+	total_posts = post.count_feed_posts(db, current_user.id)
+	return Page(items=db_posts, **page_dict(page=page, size=size, total_posts=total_posts))
 
 
 @router.get("/{post_id}", response_model=PostDBOut, status_code=status.HTTP_200_OK)
