@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from sqlalchemy import Column, Table, Integer, String, ForeignKey, Text
 from sqlalchemy.orm import relationship, backref, mapped_column, Mapped
@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship, backref, mapped_column, Mapped
 from app.db.base_class import Base
 from app.models.post import Post
 from app.models.image import Image
+from app.models.comment import Comment
 
 
 # follower_id - следящий, followed_id - следуемый
@@ -40,6 +41,9 @@ class Users(Base):
 	)
 	images: Mapped[List["Image"]] = relationship(lazy="dynamic", cascade="all, delete-orphan")
 	posts: Mapped[List["Post"]] = relationship(back_populates="author", lazy="dynamic", cascade="all, delete-orphan")
+	comments: Mapped[List["Comment"]] = relationship(
+		back_populates="author", lazy="dynamic", cascade="all, delete-orphan"
+	)
 
 	def __repr__(self) -> str:
 		return f"User_id={self.id} - {self.email}"
