@@ -12,6 +12,7 @@ from app.schemas.post import PostCreate, PostUpdate, PostDBOut, PostDBCreate, Po
 from app.schemas.image import ImageDB
 from app.schemas.responses import SuccessResponse
 from app.schemas.page import Page
+from app.schemas.comment import CommentDBOut, CommentCreate, CommentDBCreate
 from app.api.deps import get_db, get_current_user
 from app.models.users import Users
 from app.models.image import Image
@@ -20,6 +21,7 @@ from app.utils.image_processing import image_processing, image_delete
 from app.utils.page import page_dict
 from app.crud.crud_post import post
 from app.crud.crud_user import user
+from app.crud.crud_comment import comment
 
 router = APIRouter()
 
@@ -135,6 +137,20 @@ def get_feeds(
 	db_posts = post.get_all_feed(db, page=page, limit=size, id_=current_user.id)
 	total_posts = post.count_feed_posts(db, current_user.id)
 	return Page(items=db_posts, **page_dict(page=page, size=size, total_posts=total_posts))
+
+
+@router.post("/comment/{post_id}", response_model=CommentDBOut, status_code=status.HTTP_201_CREATED)
+def create_comment(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		current_user: Annotated[Users, Depends(get_current_user)],
+		post_id: int,
+		obj_in: CommentCreate
+) -> Any:
+	db_post = post.get(db, id_=post_id)
+	comment_obj = CommentDBCreate(**obj_in.model_dump(), user_id=current_user.id)
+	db_comment = comment.create(db, obj_in=comment_obj, obj_to_comment=db_post)
+	return db_comment
 
 
 @router.get("/{post_id}", response_model=PostDBOut, status_code=status.HTTP_200_OK)
