@@ -30,9 +30,20 @@ class CommentDBUpdate(CommentUpdate):
 class CommentDBOut(CommentDBCreate):
 	id: int
 	author: UserOut | None = None
-	parent_comment: Optional["CommentDBOut"] = None
-	child_comments: Optional[List["CommentDBOut"]] = None
 	commentable_type: str
 	commentable_id: int
+	parent_comment: Optional["CommentDBOut"] = None
 
+
+# чтобы избежать бесконечной рекурсии, вынес child_comments в отдельный подкласс
+# так как parent_comment и child_comments ссылались бы на себя
+class CommentDBOutWithComments(CommentDBOut):
+	child_comments: None | List["CommentDBOutWithComments"] = []
+
+
+CommentDBOutWithComments.model_rebuild()
+
+
+class CommentsDBOut(BaseModel):
+	comments: List[CommentDBOutWithComments] | None = []
 
