@@ -1,6 +1,7 @@
-from typing import TypeVar
+from typing import TypeVar, List
 
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from fastapi import HTTPException, status
 
@@ -44,6 +45,16 @@ class CRUDComment(CRUDBase[Comment, CommentDBCreate, CommentDBUpdate]):
 		db.add(db_comment)
 		db.commit()
 		return db_comment
+
+	def get_object_comments(
+			self,
+			db: Session,
+			*,
+			obj_to_comment: T
+	) -> List[Comment] | None:
+		stmt = select(self.model).where(
+			self.model.commentable == obj_to_comment, self.model.parent_comment_id.is_(None))
+		return db.execute(stmt).scalars().all()
 
 
 comment = CRUDComment(Comment)

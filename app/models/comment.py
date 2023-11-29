@@ -23,7 +23,7 @@ class Comment(Base):
 	commentable_id: Mapped[int] = mapped_column(Integer)
 	author: Mapped["Users"] = relationship(back_populates="comments")
 	parent_comment: Mapped["Comment"] = relationship(back_populates="child_comments", remote_side=[id])
-	child_comments: Mapped[List["Comment"]] = relationship(back_populates="parent_comment", lazy="dynamic")
+	child_comments: Mapped[List["Comment"]] = relationship(back_populates="parent_comment", lazy="selectin")
 
 	# https://sqlalchemy-utils.readthedocs.io/en/latest/generic_relationship.html
 	commentable = generic_relationship(commentable_type, commentable_id)

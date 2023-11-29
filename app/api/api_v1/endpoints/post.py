@@ -12,7 +12,8 @@ from app.schemas.post import PostCreate, PostUpdate, PostDBOut, PostDBCreate, Po
 from app.schemas.image import ImageDB
 from app.schemas.responses import SuccessResponse
 from app.schemas.page import Page
-from app.schemas.comment import CommentDBOut, CommentCreate, CommentDBCreate
+from app.schemas.comment import CommentDBOut, CommentCreate, CommentDBCreate, CommentUpdate, CommentDBUpdate
+from app.schemas.comment import CommentDBOutWithComments, CommentsDBOut
 from app.api.deps import get_db, get_current_user
 from app.models.users import Users
 from app.models.image import Image
@@ -34,6 +35,7 @@ def create(
 		files: Annotated[List[UploadFile], File()] = None,
 		obj_in: PostCreate
 ) -> Any:
+	"""Создает пост. Добавляет файлы к посту."""
 	post_obj = PostDBCreate(**obj_in.model_dump(), user_id=current_user.id)
 	db_post = Post(**post_obj.model_dump())
 	db.add(db_post)
@@ -57,6 +59,7 @@ def update(
 		obj_in: PostUpdate,
 		post_id: int
 ) -> Any:
+	"""Редактирует пост. (Текст поста)"""
 	post_obj = PostDBUpdate(**obj_in.model_dump(exclude_unset=True), updated_at=datetime.utcnow())
 	db_post = post.get(db, id_=post_id)
 	if files:
@@ -78,6 +81,7 @@ def delete_post(
 		current_user: Annotated[Users, Depends(get_current_user)],
 		post_id: int
 ) -> Any:
+	"""Удаляет пост. Также удялятся все файлы связанные с постом."""
 	db_post = post.get(db, id_=post_id)
 	for image in db_post.images.all():
 		image_delete(image.name)
@@ -93,6 +97,7 @@ def delete_image_from_post(
 		post_id: int,
 		filename: str
 ) -> Any:
+	"""Удаляет файл из поста."""
 	image_delete(filename)
 	db_image = db.execute(select(Image).filter_by(name=filename)).scalar_one_or_none()
 	db_post = post.get(db, id_=post_id)
@@ -108,6 +113,7 @@ def get_posts(
 		db: Annotated[Session, Depends(get_db)],
 		current_user: Annotated[Users, Depends(get_current_user)]
 ) -> Any:
+	"""Возвращает все посты текущего пользователя"""
 	return {"posts": [p for p in current_user.posts.all()]}
 
 
@@ -120,6 +126,7 @@ def get_user_posts(
 		page: int = Query(1, ge=1, description="Page number"),
 		size: int = Query(10, ge=1, le=100, description="Page size")
 ) -> Any:
+	"""Возвращает посты нужного пользователя с пагинацией."""
 	db_user = user.get(db, id_=user_id)
 	db_posts = post.get_page(db, page=page, limit=size, id_=user_id)
 	total_posts = post.count_posts(db, user_id)
@@ -134,12 +141,13 @@ def get_feeds(
 		page: int = Query(1, ge=1, description="Page number"),
 		size: int = Query(10, ge=1, le=100, description="Page size")
 ) -> Any:
+	"""Возвращает посты текущего пользователя и его подписок, с пагинацией. (Лента новостей)"""
 	db_posts = post.get_all_feed(db, page=page, limit=size, id_=current_user.id)
 	total_posts = post.count_feed_posts(db, current_user.id)
 	return Page(items=db_posts, **page_dict(page=page, size=size, total_posts=total_posts))
 
 
-@router.post("/comment/{post_id}", response_model=CommentDBOut, status_code=status.HTTP_201_CREATED)
+@router.post("/{post_id}/comment", response_model=CommentDBOut, status_code=status.HTTP_201_CREATED)
 def create_comment(
 		*,
 		db: Annotated[Session, Depends(get_db)],
@@ -147,9 +155,64 @@ def create_comment(
 		post_id: int,
 		obj_in: CommentCreate
 ) -> Any:
+	"""Создает комментарий к посту."""
 	db_post = post.get(db, id_=post_id)
 	comment_obj = CommentDBCreate(**obj_in.model_dump(), user_id=current_user.id)
 	db_comment = comment.create(db, obj_in=comment_obj, obj_to_comment=db_post)
+	return db_comment
+
+
+@router.put("/{post_id}/comment/{comment_id}", response_model=CommentDBOut, status_code=status.HTTP_200_OK)
+def update_comment(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		current_user: Annotated[Users, Depends(get_current_user)],
+		post_id: int,
+		comment_id: int,
+		obj_in: CommentUpdate
+) -> Any:
+	"""Редактирует комментарий. (Текст)"""
+	db_post = post.get(db, id_=post_id)
+	db_comment = comment.get(db, id_=comment_id)
+	comment_obj = CommentDBUpdate(**obj_in.model_dump(), updated_at=datetime.utcnow())
+	db_comment = comment.update(db, db_obj=db_comment, obj_in=comment_obj)
+	return db_comment
+
+
+@router.delete("/{post_id}/comment/{comment_id}", response_model=SuccessResponse, status_code=status.HTTP_200_OK)
+def delete_comment(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		current_user: Annotated[Users, Depends(get_current_user)],
+		post_id: int,
+		comment_id: int
+) -> Any:
+	db_post = post.get(db, id_=post_id)
+	comment.remove(db, id_=comment_id)
+	return {"success": "Comment has been deleted."}
+
+
+@router.get("/{post_id}/comment", response_model=CommentsDBOut, status_code=status.HTTP_200_OK)
+def get_comments(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		current_user: Annotated[Users, Depends(get_current_user)],
+		post_id: int
+) -> Any:
+	db_post = post.get(db, id_=post_id)
+	db_comments = comment.get_object_comments(db, obj_to_comment=db_post)
+	return {"comments": db_comments}
+
+
+@router.get("/comment/{comment_id}", response_model=CommentDBOutWithComments, status_code=status.HTTP_200_OK)
+def get_comment(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		current_user: Annotated[Users, Depends(get_current_user)],
+		comment_id: int
+) -> Any:
+	"""Возвращает комментарий по id"""
+	db_comment = comment.get(db, id_=comment_id)
 	return db_comment
 
 
