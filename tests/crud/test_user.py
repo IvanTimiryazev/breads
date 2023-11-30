@@ -4,20 +4,18 @@ from datetime import date
 
 from tests.other_tools import get_random_email, get_random_password
 from tests.conftest import client, session
+from .conftest import create_user
 from app.schemas.users import UserCreate, UserUpdate
 from app.crud.crud_user import user
 from app.core.security import verify_password
+from app.models.users import Users
 
 
-def test_create_user(session: Session) -> None:
-	email = get_random_email()
-	password = get_random_password()
-	user_in = UserCreate(email=email, password=password)
-	user_obj = user.create(session, obj_in=user_in)
-	assert user_obj.email == email
+def test_create_user(session: Session, create_user: Users) -> None:
+	assert create_user.email
 
-	user_in_db = user.get_by_email(session, email=email)
-	assert user_in_db.email == user_obj.email
+	user_in_db = user.get_by_email(session, email=create_user.email)
+	assert user_in_db.email == create_user.email
 
 
 @pytest.mark.parametrize(
@@ -92,7 +90,7 @@ def test_get_user(session: Session) -> None:
 	password = get_random_password()
 	user_obj = user.create(session, obj_in=UserCreate(email=email, password=password))
 	assert user_obj
-	user_in_db = user.get(session, id=user_obj.id)
+	user_in_db = user.get(session, id_=user_obj.id)
 	assert user_in_db
 	assert user_in_db.email == email
 
@@ -111,9 +109,9 @@ def test_remove_user(session: Session) -> None:
 	password = get_random_password()
 	user_obj = user.create(session, obj_in=UserCreate(email=email, password=password))
 	assert user_obj
-	user_in_db = user.get(session, id=user_obj.id)
+	user_in_db = user.get(session, id_=user_obj.id)
 	assert user_in_db
-	user_in_db = user.remove(session, id=user_in_db.id)
+	user_in_db = user.remove(session, id_=user_in_db.id)
 	assert user_in_db.email == email
 	user_in_db = user.get_by_email(session, email=user_in_db.email)
 	assert not user_in_db
@@ -129,9 +127,9 @@ def test_follow(session: Session) -> None:
 	user_1 = user.create(session, obj_in=user_in_1)
 	user_2 = user.create(session, obj_in=user_in_2)
 	assert user_1 and user_2
-	assert not user.is_following(user_db=user_1, follower=user_2)
-	user.follow(session, user_db=user_1, follower=user_2)
-	assert user.is_following(user_db=user_1, follower=user_2)
+	assert not user.is_following(user_db=user_1, user_to_follow=user_2)
+	user.follow(session, user_db=user_1, user_to_follow=user_2)
+	assert user.is_following(user_db=user_1, user_to_follow=user_2)
 	assert user_2 in user_1.followed.all()
 	assert user_1 in user_2.followers.all()
 
@@ -146,10 +144,10 @@ def test_unfollow(session: Session) -> None:
 	user_1 = user.create(session, obj_in=user_in_1)
 	user_2 = user.create(session, obj_in=user_in_2)
 	assert user_1 and user_2
-	assert not user.is_following(user_db=user_2, follower=user_1)
-	user.follow(session, user_db=user_2, follower=user_1)
-	assert user.is_following(user_db=user_2, follower=user_1)
-	user.unfollow(session, user_db=user_2, follower=user_1)
-	assert not user.is_following(user_db=user_2, follower=user_1)
+	assert not user.is_following(user_db=user_2, user_to_follow=user_1)
+	user.follow(session, user_db=user_2, user_to_follow=user_1)
+	assert user.is_following(user_db=user_2, user_to_follow=user_1)
+	user.unfollow(session, user_db=user_2, user_to_follow=user_1)
+	assert not user.is_following(user_db=user_2, user_to_follow=user_1)
 	assert user_1 not in user_2.followed.all()
 
