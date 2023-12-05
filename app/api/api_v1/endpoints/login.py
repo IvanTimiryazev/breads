@@ -1,6 +1,6 @@
 from typing import Any, Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -17,11 +17,12 @@ from app.utils.sendmail import send_reset_password
 router = APIRouter()
 
 
-@router.post("/login", response_model=Token, status_code=status.HTTP_200_OK)
+@router.post("/login", response_model=Token)
 def login(
 		*,
 		db: Annotated[Session, Depends(get_db)],
-		form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+		form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+		response: Response
 ) -> Any:
 	"""Авторизация пользователя и создания токена доступа для него"""
 	user_db = user.authenticate(db, email=form_data.username, password=form_data.password)
@@ -32,7 +33,8 @@ def login(
 			headers={"WWW-Authenticate": "Bearer"}
 		)
 	access_token = create_access_token(subject=user_db.id)
-	return {"access_token": access_token, "token_type": "bearer"}
+	response.set_cookie(key="access_token", value=access_token, httponly=True)
+	return {"access_token": access_token, "token_type": "Bearer"}
 
 
 @router.post("/password-recovery/{email}", response_model=Message, status_code=status.HTTP_200_OK)

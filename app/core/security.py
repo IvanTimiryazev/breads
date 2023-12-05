@@ -3,10 +3,12 @@ from datetime import timedelta, datetime
 from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordBearer
 
-from app.core.config import settings
+from starlette.requests import Request
+from typing import Optional
+from starlette.status import HTTP_401_UNAUTHORIZED
+from fastapi.exceptions import HTTPException
 
-PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/login")
+from app.core.config import settings
 
 
 def get_password_hash(password: str) -> str:
@@ -46,3 +48,21 @@ def verify_password_reset_token(token: str) -> str | None:
 		return decoded_token["sub"]
 	except JWTError:
 		return None
+
+
+class OAuth2PasswordCookieBearer(OAuth2PasswordBearer):
+	"""Переопределил метод __call__ чтобы вытащить токен из кука а не из хэдэра"""
+	async def __call__(self, request: Request) -> Optional[str]:
+		authorization = request.cookies.get("access_token")
+		if not authorization:
+			if self.auto_error:
+				raise HTTPException(
+					status_code=HTTP_401_UNAUTHORIZED,
+					detail="Not authenticated",
+					headers={"WWW-Authenticate": "Bearer"},
+				)
+		return authorization
+
+
+PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordCookieBearer(tokenUrl=f"{settings.API_V1_STR}/login")
