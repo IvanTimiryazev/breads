@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.core.security import oauth2_scheme
+from app.core.security import verify_token
 from app.models.users import Users
 from app.core.config import settings
 from app.schemas.token import TokenData
@@ -28,15 +29,8 @@ def get_current_user(
 		detail="Could not validate credentials",
 		headers={"WWW-Authenticate": "Bearer"}
 	)
-	try:
-		payload = jwt.decode(token, settings.JWT_SECRET, settings.JWT_ALGORITHM)
-		user_id: str = payload.get("sub")
-		if user_id is None:
-			raise credentials_exception
-		token_data = TokenData(id=user_id)
-	except JWTError:
-		raise credentials_exception
-	current_user = user.get(db, id_=token_data.id)
+	user_id = verify_token(token)
+	current_user = user.get(db, id_=user_id)
 	if not current_user:
 		raise credentials_exception
 	return current_user

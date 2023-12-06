@@ -17,7 +17,8 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     FIRST_SUPERUSER: EmailStr
     FIRST_SUPERUSER_PW: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 10080 minutes -> 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 10080 minutes -> 7 days
     RESET_PASSWORD_EXPIRE_MINUTES: int = 10
     MAIL_USE_TLS: bool = True
     MAIL_HOST: str | None = None
