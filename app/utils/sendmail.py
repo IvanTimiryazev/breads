@@ -5,6 +5,7 @@ from emails.template import JinjaTemplate
 from typing import Dict, Any
 
 from app.core.config import settings
+from app.core.celery_app import celery
 
 
 def send_email(
@@ -28,6 +29,7 @@ def send_email(
 	logging.info(f"send email result: {response}")
 
 
+@celery.task
 def send_test_email(email_to: str) -> None:
 	project_name = settings.PROJECT_NAME
 	subject = f"{project_name}: - test launch"
@@ -43,6 +45,7 @@ def send_test_email(email_to: str) -> None:
 	)
 
 
+@celery.task
 def send_reset_password(*, email_to: str, email: str, token: str) -> None:
 	project_name = settings.PROJECT_NAME
 	subject = f"{project_name} - Password recovery for user {email}"

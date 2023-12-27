@@ -49,7 +49,7 @@ def recover_password(email: str, db: Annotated[Session, Depends(get_db)]) -> Any
 			detail="The user with this email does not exist in the system."
 		)
 	password_reset_token = create_password_reset_token(email)
-	send_reset_password(
+	send_reset_password.delay(
 		email_to=email,
 		email=email,
 		token=password_reset_token)
