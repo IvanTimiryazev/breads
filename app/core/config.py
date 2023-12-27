@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     SERVER_PORT: int = 8002
     ELASTICSEARCH_URL: str
     STATIC_DIR: str
+    BROKER: str
+    BACKEND: str
 
 
 settings = Settings()

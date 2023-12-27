@@ -1,3 +1,6 @@
 from celery import Celery
 
-celery = Celery("celery_app", broker="pyamqp://guest@localhost//", backend='rpc://', include=['app.utils.sendmail'])
+from .config import settings
+
+celery = Celery("celery_app", broker=settings.BROKER, backend=settings.BACKEND, include=['app.utils.sendmail'])
+celery.conf.acks_late = True
