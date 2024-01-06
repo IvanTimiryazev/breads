@@ -8,6 +8,7 @@ from app.db.base_class import Base
 from app.models.post import Post
 from app.models.image import Image
 from app.models.comment import Comment
+from app.models.likes import Likes
 
 
 # follower_id - следящий, followed_id - следуемый
@@ -44,6 +45,7 @@ class Users(Base):
 	comments: Mapped[List["Comment"]] = relationship(
 		back_populates="author", lazy="dynamic", cascade="all, delete-orphan"
 	)
+	likes: Mapped[List["Likes"]] = relationship(lazy="dynamic", cascade="all, delete-orphan")
 
 	def __repr__(self) -> str:
 		return f"User_id={self.id} - {self.email}"

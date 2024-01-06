@@ -14,6 +14,7 @@ from app.schemas.responses import SuccessResponse
 from app.schemas.page import Page
 from app.schemas.comment import CommentDBOut, CommentCreate, CommentDBCreate, CommentUpdate, CommentDBUpdate
 from app.schemas.comment import CommentDBOutWithComments, CommentsDBOut
+from app.schemas.like import LikeCreate, LikeDBOut, LikesCount
 from app.api.deps import get_db, get_current_user
 from app.models.users import Users
 from app.models.image import Image
@@ -23,6 +24,7 @@ from app.utils.page import page_dict
 from app.crud.crud_post import post
 from app.crud.crud_user import user
 from app.crud.crud_comment import comment
+from app.crud.crud_like import likes
 
 router = APIRouter()
 
@@ -214,6 +216,46 @@ def get_comment(
 	"""Возвращает комментарий по id"""
 	db_comment = comment.get(db, id_=comment_id)
 	return db_comment
+
+
+@router.post("/{post_id}/like", response_model=LikeDBOut, status_code=status.HTTP_201_CREATED)
+def create_like(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		current_user: Annotated[Users, Depends(get_current_user)],
+		post_id: int
+) -> Any:
+	"""Создает лайк для поста"""
+	db_post = post.get(db, id_=post_id)
+	like_obj = LikeCreate(user_id=current_user.id)
+	db_like = likes.create(db, obj_in=like_obj, obj_to_like=db_post)
+	return db_like
+
+
+@router.delete("/{post_id}/like", response_model=SuccessResponse, status_code=status.HTTP_200_OK)
+def delete_like(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		current_user: Annotated[Users, Depends(get_current_user)],
+		post_id: int
+) -> Any:
+	"""Удаляет лайк с поста"""
+	db_post = post.get(db, id_=post_id)
+	likes.remove_like(db, obj_to_like=db_post, user_id=current_user.id)
+	return {"success": "Like has been deleted."}
+
+
+@router.get("/{post_id}/likes-count", response_model=LikesCount, status_code=status.HTTP_200_OK)
+def count_likes(
+		*,
+		db: Annotated[Session, Depends(get_db)],
+		current_user: Annotated[Users, Depends(get_current_user)],
+		post_id: int
+) -> Any:
+	"""Считает количество лайков на посте"""
+	db_post = post.get(db, id_=post_id)
+	count = likes.count_likes(db, obj_to_like=db_post)
+	return {"count": count}
 
 
 @router.get("/{post_id}", response_model=PostDBOut, status_code=status.HTTP_200_OK)
