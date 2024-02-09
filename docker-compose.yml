@@ -18,34 +18,34 @@ services:
 #    depends_on:
 #      - elasticsearch
 
-#  db:
-#    image: postgres:14.3
-#    restart: always
-#    ports:
-#      - "5432:5432"
-#    volumes:
-#      - $HOME/docker/volumes/postgres/breads:/var/lib/postgresql/data
-#    environment:
-#      - POSTGRES_USER=${DB_USER}
-#      - POSTGRES_PASSWORD=${DB_PASSWORD}
-#      - POSTGRES_DB=${DB_NAME}
-#      - POSTGRES_SERVER=${POSTGRES_SERVER}
-#
-#  app:
-#    build:
-#      dockerfile: Dockerfile
-#      context: .
-#    container_name: app
-#    restart: always
-#    depends_on:
-#      - db
-#    ports:
-#      - "8002:8002"
-#    environment:
-#      - SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI}
-#      - JWT_SECRET=${JWT_SECRET}
-#    volumes:
-#      - $HOME/docker/volumes/breads:/var/lib
+  db:
+    image: postgres:14.3
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - $HOME/docker/volumes/postgres/breads:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_SERVER=${POSTGRES_SERVER}
+
+  app:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: app
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "8002:8002"
+    environment:
+      - SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI}
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - $HOME/docker/volumes/breads:/var/lib
 
   rabbitmq:
     image: rabbitmq:3.10.7-management

@@ -21,9 +21,8 @@ class ImagesDBOut(BaseModel):
 	images: List[ImageDBOut]
 
 
-class ImageOut(BaseModel):
+class ImageOut(ImageDBOut):
 	filepath: Path
-	name: str
 
 
 class ImagesOut(BaseModel):
