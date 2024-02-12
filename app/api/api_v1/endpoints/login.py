@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.schemas.message import Message
+from app.schemas.token import Token
 from app.crud.crud_user import user
 from app.core.security import (
 	create_access_token, create_password_reset_token,
@@ -17,7 +18,7 @@ from app.utils.sendmail import send_reset_password
 router = APIRouter()
 
 
-@router.post("/login", response_model=Message)
+@router.post("/login", response_model=Token)
 def login(
 		*,
 		db: Annotated[Session, Depends(get_db)],
@@ -34,9 +35,11 @@ def login(
 		)
 	access_token = create_access_token(user_db.id)
 	refresh_token = create_refresh_token(user_db.id)
-	response.set_cookie(key="access_token", value=access_token, httponly=True)
 	response.set_cookie(key="refresh_token", value=refresh_token, httponly=True)
-	return {"msg": "Successfully login"}
+	return {
+		'access_token': access_token,
+		'token_type': 'bearer'
+	}
 
 
 @router.post("/password-recovery/{email}", response_model=Message, status_code=status.HTTP_200_OK)
@@ -77,7 +80,7 @@ def reset_password(
 	return {"msg": "Password updated successfully"}
 
 
-@router.post("/refresh", response_model=Message, status_code=status.HTTP_201_CREATED)
+@router.post("/refresh", response_model=Token, status_code=status.HTTP_201_CREATED)
 def refresh_access_token(
 		db: Annotated[Session, Depends(get_db)],
 		response: Response,
@@ -92,5 +95,7 @@ def refresh_access_token(
 			headers={"WWW-Authenticate": "Bearer"}
 		)
 	access_token = create_access_token(user_db.id)
-	response.set_cookie(key="access_token", value=access_token, httponly=True)
-	return {"msg": "The token has been refresh"}
+	return {
+		'access_token': access_token,
+		'token_type': 'bearer'
+	}

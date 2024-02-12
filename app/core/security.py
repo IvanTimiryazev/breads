@@ -78,7 +78,7 @@ def verify_token(token: str) -> int:
 
 
 class OAuth2PasswordCookieBearer(OAuth2PasswordBearer):
-	"""Переопределил метод __call__ чтобы вытащить токен из кука а не из хэдэра"""
+	"""Переопределил метод __call__ чтобы вытащить токен из кука а не из хэдэра, если access token будет в куках"""
 	async def __call__(self, request: Request) -> Optional[str]:
 		authorization = request.cookies.get("access_token")
 		if not authorization:
@@ -92,4 +92,4 @@ class OAuth2PasswordCookieBearer(OAuth2PasswordBearer):
 
 
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordCookieBearer(tokenUrl=f"{settings.API_V1_STR}/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/login")
