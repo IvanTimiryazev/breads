@@ -44,13 +44,15 @@ services:
     environment:
       - SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI}
       - JWT_SECRET=${JWT_SECRET}
+      - STATIC_DIR=/app/static
     volumes:
       - $HOME/docker/volumes/breads:/var/lib
+      - $HOME/docker/volumes/breads/static:/app/static
 
-  rabbitmq:
-    image: rabbitmq:3.10.7-management
-    ports:
-      - "15672:15672"
-      - "5672:5672"
+#  rabbitmq:
+#    image: rabbitmq:3.10.7-management
+#    ports:
+#      - "15672:15672"
+#      - "5672:5672"
 
 
